@@ -10,13 +10,13 @@ MySensor gw;
 const int relayPin[] = {7, 8, A0, A1};
 const int buttonPin[] = {3, 4, 5, 6};
 
-class Relay							// relay class, store all relevant data (equivalent to struct)
+class Relay	// relay class, store all relevant data (equivalent to struct)
 {
 public:                             		 
-  int buttonPin;					// physical pin number of button
-  int relayPin;						// physical pin number of relay
-  byte oldValue;               		// last Values for key (debounce)
-  boolean relayState;             	// relay status (also stored in EEPROM)
+  int buttonPin;	// physical pin number of button
+  int relayPin;		// physical pin number of relay
+  byte oldValue;	// last Values for key (debounce)
+  boolean relayState	// relay status (also stored in EEPROM)
 };
 
 Relay Relays[noRelays];	
@@ -30,11 +30,11 @@ void setup(){
 	delay(250);
 	// initialize Relays with corresponding buttons
 	for (int i = 0; i < noRelays; i++){
-		Relays[i].buttonPin = buttonPin[i];				// assign physical pins
+		Relays[i].buttonPin = buttonPin[i];	// assign physical pins
 		Relays[i].relayPin = relayPin[i];
-		msg[i].sensor = i;								// initialize messages
+		msg[i].sensor = i;			// initialize messages
 		msg[i].type = V_LIGHT;
-		debouncer[i] = Bounce();						// initialize debouncer
+		debouncer[i] = Bounce();		// initialize debouncer
 		debouncer[i].attach(buttonPin[i]);
 		debouncer[i].interval(5);
 		pinMode(Relays[i].buttonPin, INPUT_PULLUP);
