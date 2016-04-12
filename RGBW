@@ -1,0 +1,339 @@
+/**
+ * The MySensors Arduino library handles the wireless radio link and protocol
+ * between your home built sensors/actuators and HA controller of choice.
+ * The sensors forms a self healing radio network with optional repeaters. Each
+ * repeater and gateway builds a routing tables in EEPROM which keeps track of the
+ * network topology allowing messages to be routed to nodes.
+ *
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2015 Sensnology AB
+ * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
+ *
+ * Documentation: http://www.mysensors.org
+ * Support Forum: http://forum.mysensors.org
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ *******************************
+ *
+ * REVISION HISTORY
+ * Version 1.0 - Developed by Bruce Lacey and GizMoCuz (Domoticz)
+ * Version 1.1 - Modified by MikeF to provide 4 dimmers: RGBW
+ *               and simple IR control: toggle / up / down, with inspiration
+ *               from Jeremy Saglimbeni (www.thecustomgeek.com)
+ * 
+ * DESCRIPTION
+ * RGBW LED strip controlled with 4 dimmers, with simple fade up / down.
+ * Uses TSOP38238 IR receiver with Adafruit NEC Remote Control to provide
+ * remote control, as well as operation through gateway / controller.
+ *
+ * ---------------------------------------------------*
+ * IR Commands:                                       *
+ * Remote Key       NEC Code       Command            *
+ * ---------------------------------------------------*
+ * vol-             0              (not used)         *
+ * play/pause       1              (not used)         *
+ * vol+             2              (not used)         *
+ * setup            4              white toggle       *
+ * up               5              bright - RGB       *
+ * stop/mode        6              all off            *
+ * left             8              white down         *
+ * enter/save       9              (not used)         *
+ * right            10             white up           *
+ * 0/+10            12             all on             *
+ * down             13             dim - RGB          *
+ * repeat           14             show RGBW values   *
+ * 1                16             red up             *
+ * 2                17             green up           *
+ * 3                18             blue up            *
+ * 4                20             red toggle         *
+ * 5                21             green toggle       *
+ * 6                22             blue toggle        *
+ * 7                24             red down           *
+ * 8                25             green down         *
+ * 9                26             blue down          *
+ * ---------------------------------------------------*
+ */
+
+ 
+#include <SPI.h>
+#include <MySensor.h>
+#include "Adafruit_NECremote.h"
+
+#define RED_PIN     9  
+#define GREEN_PIN  10
+#define BLUE_PIN    5
+#define WHITE_PIN   3
+#define IRpin       2
+
+Adafruit_NECremote remote(IRpin);
+
+#define SN "Dimmable RGBW LED"
+#define SV "1.1"
+
+int r = 1;
+int g = 2;
+int b = 3;
+int w = 4;
+int i;
+int RGB_pins[5] = {0, RED_PIN, GREEN_PIN, BLUE_PIN, WHITE_PIN};
+int toggleBtns[] = {0, 20,21,22,4}; // NEC codes for remote buttons - see table above
+int upBtns[] = {0, 16, 17, 18, 10};
+int downBtns[] = {0, 24, 25, 26, 8};
+int FADE_DELAY = 25; // ms between fade steps
+
+char convBuffer[10];
+int oldLevel;
+int newLevel;
+int remval;
+int oldc;
+
+MyTransportNRF24 transport(6,7); // (default: 9, 10 - changed for my board)
+MySensor gw(transport);
+
+MyMessage RedStatus(r, V_DIMMER);
+MyMessage GreenStatus(g, V_DIMMER);
+MyMessage BlueStatus(b, V_DIMMER);
+MyMessage WhiteStatus(w, V_DIMMER);
+
+// Serial.print translate sensor id to sensor name
+char color[][6] = {"","RED","GREEN","BLUE","WHITE"};
+
+void setup()  
+{ 
+    // Set analog led pin to off
+    analogWrite( RED_PIN, 0);
+    analogWrite( GREEN_PIN, 0);
+    analogWrite( BLUE_PIN, 0);
+    analogWrite( WHITE_PIN, 0);
+
+    // Init mysensors library
+    gw.begin(incomingMessage, 31, false);
+
+    // Register sensors (id, type, description, ack back)
+    gw.present(r, S_DIMMER, "RED LEDs");
+    gw.present(g, S_DIMMER, "GREEN LEDs");
+    gw.present(b, S_DIMMER, "BLUE LEDs");
+    gw.present(w, S_DIMMER, "WHITE LEDs");
+  
+    // Send the Sketch Version Information to the Gateway
+    gw.sendSketchInfo(SN, SV);
+
+    // Retrieve our last dim levels from the eprom
+    Serial.println("Sending in last known light levels to controller: ");
+    for (i = 1; i < 5; i++) {
+        oldLevel = 0;
+        newLevel = loadLevelState(i);
+        update(i, newLevel);
+    }
+  
+    Serial.println("Ready to receive messages...");  
+}
+
+void loop()      
+{
+    // Process incoming messages (like config and light state from controller)
+    gw.process();
+  
+    hearir(); // check the ir
+}
+
+void incomingMessage(const MyMessage &message)
+{
+    if (message.isAck())
+    {
+        Serial.println("Got ack from gateway");
+    }
+  
+    if (message.type == V_LIGHT) {
+        // Incoming on/off command sent from controller ("1" or "0")
+        int lightState = message.getString()[0] == '1';
+        i = message.sensor;
+        oldLevel = loadLevelState(i);
+        newLevel = 0;
+        if (lightState==1) {
+            // Pick up last saved dimmer level from the eeprom
+            newLevel = loadLevelState(i + 5);
+        } 
+
+    } else if (message.type == V_DIMMER) {
+        // Incoming dim-level command sent from controller (or ack message)
+        oldLevel = loadLevelState(i);
+        newLevel = atoi(message.getString(convBuffer));
+        i = message.sensor;
+    
+        // Save received dim value to eeprom (unless turned off)
+        // Will be retrieved when an 'On' command comes in
+        sendStatus(i, newLevel);
+        if (newLevel != 0) {
+            saveLevelState(i + 5, newLevel);
+        }
+    }
+  
+    update (i, newLevel);
+
+}
+
+// Make sure only to store/fetch values in the range 0-100 from eeprom
+int loadLevelState(byte pos) {
+    return min(max(gw.loadState(pos),0),100);
+}
+
+void saveLevelState(byte pos, byte data) {
+    gw.saveState(pos,min(max(data,0),100));
+}
+
+// Get the right message name to send sensor info
+void sendStatus(int idx, int level) {
+    switch (idx) {
+        case 1:
+            gw.send(RedStatus.set(level), false);
+            break;
+        case 2:
+            gw.send(GreenStatus.set(level), false);
+            break;
+        case 3:
+            gw.send(BlueStatus.set(level), false);
+            break;
+        case 4:
+            gw.send(WhiteStatus.set(level), false);
+            break;
+    }
+}
+
+// Listen to IR sensor
+void hearir() { 
+    int c = remote.listen(1);
+    remval = c;
+    if (oldc != c && c >= 0) {
+        remoteck();
+    }
+    c = oldc;
+}
+
+void remoteck() {
+    // toggle
+    for (i = 1; i < 5; i++) {
+        if (remval == toggleBtns[i]) {
+            oldLevel = loadLevelState(i);
+            newLevel = 0;
+            if (oldLevel == 0) {
+                newLevel = loadLevelState(i + 5);
+            }
+            update(i, newLevel);
+            break;
+        }
+    }
+  
+    // up
+    for (i = 1; i < 5; i++) {
+        if (remval == upBtns[i]) {
+            oldLevel = loadLevelState(i);
+            if (oldLevel <= 90) {
+                newLevel = oldLevel + 10;
+                saveLevelState(i + 5, newLevel);
+                update(i, newLevel);
+            }
+            break;
+        }
+    }
+    
+    // down
+    for (i = 1; i < 5; i++) {
+        if (remval == downBtns[i]) {
+            oldLevel = loadLevelState(i);
+            if (oldLevel >= 10) {
+                newLevel = oldLevel - 10;
+                if (newLevel != 0) {
+                    saveLevelState(i + 5, newLevel);
+                }
+                update (i, newLevel);
+            }           
+            break;
+        }
+    }
+    
+    // all off
+    if (remval == 6) {
+        for (i = 1; i < 5; i++) {
+            oldLevel = loadLevelState(i);
+            newLevel = 0;
+            update(i, newLevel);
+        }
+    }
+    
+    // all on
+    if (remval == 12) { // returns to last saved values
+        // could bring all up to 100%: newLevel = 100
+        for (i = 1; i < 5; i++) {
+            oldLevel = loadLevelState(i);
+            newLevel = loadLevelState(i + 5);
+            update(i, newLevel);
+        }
+    }   
+    
+    // RGB dim
+    if (remval == 13) {
+        for (i = 1; i < 4; i++) {
+            oldLevel = loadLevelState(i);
+            if (oldLevel >= 10) {
+                newLevel = oldLevel - 10;
+                if (newLevel != 0) {
+                    saveLevelState(i + 5, newLevel);
+                }
+                update(i, newLevel);    
+            }
+        }
+    }
+    
+    // RGB bright
+    if (remval == 5) {
+        for (i = 1; i < 4; i++) {
+            oldLevel = loadLevelState(i);
+            if (oldLevel <= 90) {
+                newLevel = oldLevel + 10;
+                saveLevelState(i + 5, newLevel);
+                update(i, newLevel);
+            }
+        }
+    }
+    
+    // status - displays current values in debug
+    if (remval == 14) {
+        Serial.println("Current levels:");
+        for (i = 1; i < 5; i++) {
+            oldLevel = loadLevelState(i);
+            Serial.print(color[i]);
+            Serial.print(": ");
+            Serial.print(oldLevel);
+            Serial.println("%");
+        }
+    }
+    
+    
+}
+
+void update(int idx, int level) {
+    // Sends values to controller, outputs to pins,
+    // saves to eeprom and outputs debug messages
+    sendStatus(i, newLevel);
+    fadeLEDToLevel(i, newLevel, FADE_DELAY);
+    saveLevelState(i, newLevel);    
+    
+    Serial.print("New light level received - ");
+    Serial.print(color[i]);
+    Serial.print(": ");
+    Serial.print(newLevel);
+    Serial.println("%");
+}
+
+void fadeLEDToLevel( int LED, int toLevel, int wait ) {
+    int delta = ( toLevel - oldLevel ) < 0 ? -1 : 1;
+    while ( oldLevel != toLevel ) {
+        oldLevel += delta;
+        analogWrite( RGB_pins[LED], (int)(oldLevel / 100. * 255) );
+        delay( wait );
+    }
+}
