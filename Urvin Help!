@@ -14,14 +14,14 @@
 
 MySensor gw;
 
-
 byte currentLevel[3] = {0,0,0};
-MyMessage dimmerMsg1(DIMMER_NODE_1, V_DIMMER);
-MyMessage lightMsg1(DIMMER_NODE_1, V_LIGHT);
-MyMessage dimmerMsg2(DIMMER_NODE_2, V_DIMMER);
-MyMessage lightMsg2(DIMMER_NODE_2, V_LIGHT);
-MyMessage dimmerMsg3(DIMMER_NODE_3, V_DIMMER);
-MyMessage lightMsg3(DIMMER_NODE_3, V_LIGHT);
+MyMessage dimmerMsg0(0, V_DIMMER);
+MyMessage lightMsg0(0, V_LIGHT);
+MyMessage dimmerMsg1(1, V_DIMMER);
+MyMessage lightMsg1(1, V_LIGHT);
+MyMessage dimmerMsg2(2, V_DIMMER);
+MyMessage lightMsg2(2, V_LIGHT);
+
 
 
 void setup()  
@@ -67,12 +67,23 @@ void incomingMessage(const MyMessage &message) {
 
     fadeToLevel( requestedLevel, message.sensor);
     
-    // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
-    gw.send(lightMsg.set(currentLevel[message.sensor > 0 ? 1 : 0));
-
-    // hek comment: Is this really nessesary?
-    gw.send( dimmerMsg.set(currentLevel[message.sensor) );
-
+  // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
+  // hek comment: Is this really nessesary?
+  switch(sensorId)
+  {
+    case 0:
+      gw.send(lightMsg0.set(currentLevel[0] > 0 ? 1 : 0));
+      gw.send( dimmerMsg0.set(currentLevel[0]) );
+      break;
+    case 1:
+      gw.send(lightMsg1.set(currentLevel[1] > 0 ? 1 : 0));
+      gw.send( dimmerMsg1.set(currentLevel[1]) );
+      break;
+    case 2:
+      gw.send(lightMsg2.set(currentLevel[2] > 0 ? 1 : 0));
+      gw.send( dimmerMsg2.set(currentLevel[2]) );
+      break;  
+  }
     
     }
 }
