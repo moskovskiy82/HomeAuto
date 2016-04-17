@@ -8,9 +8,9 @@
 #define LED_PIN_2 4
 #define LED_PIN_3 5
 #define FADE_DELAY 10
-#define DIMMER_NODE_1 1
+#define DIMMER_NODE_1 0
 #define DIMMER_NODE_2 1
-#define DIMMER_NODE_3 1
+#define DIMMER_NODE_3 2
 
 MySensor gw;
 
@@ -27,7 +27,7 @@ MyMessage lightMsg2(2, V_LIGHT);
 void setup()  
 { 
   Serial.println( SN ); 
-  gw.begin( incomingMessage );
+  gw.begin( incomingMessage, 89 );
   
   // Register the LED Dimmable Light with the gateway
   gw.present( DIMMER_NODE_1, S_DIMMER );
@@ -45,6 +45,11 @@ void setup()
   gw.request( DIMMER_NODE_2, V_DIMMER );
   gw.wait( 50 );
   gw.request( DIMMER_NODE_3, V_DIMMER );
+}
+
+void loop() 
+{
+  gw.process();
 }
 
 void incomingMessage(const MyMessage &message) {
@@ -69,7 +74,7 @@ void incomingMessage(const MyMessage &message) {
     
   // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
   // hek comment: Is this really nessesary?
-  switch(sensorId)
+switch(message.sensor)
   {
     case 0:
       gw.send(lightMsg0.set(currentLevel[0] > 0 ? 1 : 0));
