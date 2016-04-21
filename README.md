@@ -1,2 +1,0 @@
-# HomeAuto
-Nothing here
