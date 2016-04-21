@@ -1,0 +1,118 @@
+#include <MySensor.h>
+#include <SPI.h>
+#include <Bounce2.h>
+
+#define PIN_LEDRD  8
+#define PIN_LEDGN  7
+#define PIN_SWON   5
+#define PIN_SWOFF  6
+#define PIN_STATE  4
+#define CHILD_ID 1   // Id of the sensor child
+#define RELAY_ON 1
+#define RELAY_OFF 0
+
+Bounce debouncer = Bounce();
+int oldValue = 0;
+bool state;
+MySensor gw;
+MyMessage msg(CHILD_ID, V_LIGHT);
+
+void setup()
+{
+  gw.begin(incomingMessage, AUTO, true);
+
+  // Send the sketch version information to the gateway and Controller
+  gw.sendSketchInfo("Relay & Button", "1.0");
+
+  // Setup the button
+  pinMode(PIN_STATE, INPUT);
+  // Activate internal pull-up
+  digitalWrite(PIN_STATE, HIGH);
+
+  // After setting up the button, setup debouncer
+  debouncer.attach(PIN_STATE);
+  debouncer.interval(5);
+
+  // Register all sensors to gw (they will be created as child devices)
+  gw.present(CHILD_ID, S_LIGHT);
+
+  // Make sure relays are off when starting up
+  digitalWrite(PIN_SWON, 0);
+  digitalWrite(PIN_SWOFF, 0);
+  digitalWrite(PIN_LEDGN, 1);
+  digitalWrite(PIN_LEDRD, 1);
+  // Then set relay pins in output mode
+  pinMode(PIN_SWOFF, OUTPUT);
+  pinMode(PIN_SWON, OUTPUT);
+  pinMode(PIN_LEDGN, OUTPUT);
+  pinMode(PIN_LEDRD, OUTPUT);
+
+  // Set relay to last known state (using eeprom storage)
+  state = gw.loadState(CHILD_ID);
+  //digitalWrite(RELAY_PIN, state?RELAY_ON:RELAY_OFF);
+}
+
+
+/*
+   Example on how to asynchronously check for new messages from gw
+*/
+void loop()
+{
+  gw.process();
+  debouncer.update();
+  // Get the update value
+  int value = debouncer.read();
+
+
+  if (value != oldValue ) {
+    Serial.print("Incoming change for value:");
+    Serial.println(value);
+
+    if (value == 1) {
+      digitalWrite(PIN_LEDRD, 0);
+      digitalWrite(PIN_LEDGN, 1);
+    } else {
+      digitalWrite(PIN_LEDRD, 1);
+      digitalWrite(PIN_LEDGN, 0);
+
+    }
+
+   // gw.send(msg.set(value), true); // Send new state and request ack back
+  }
+  oldValue = value;
+}
+
+void incomingMessage(const MyMessage &message) {
+  // We only expect one type of message from controller. But we better check anyway.
+  if (message.isAck()) {
+    Serial.println("This is an ack from gateway");
+  }
+
+  if (message.type == V_LIGHT) {
+    // Change relay state
+    state = message.getBool();
+    if (state == 1) {
+      digitalWrite(PIN_SWON, 1);
+      //digitalWrite(PIN_LEDRD, 1);
+      delay(100);
+      digitalWrite(PIN_SWON, 0);
+      // digitalWrite(PIN_LEDGN, 0);
+    } else {
+      digitalWrite(PIN_SWOFF, 1);
+      delay(100);
+      digitalWrite(PIN_SWOFF, 0);
+      // digitalWrite(PIN_LEDRD, 0);
+      // digitalWrite(PIN_LEDGN, 1);
+
+    }
+
+    // Store state in eeprom
+    gw.saveState(CHILD_ID, state);
+
+    // Write some debug info
+    Serial.print("Incoming change for sensor:");
+    Serial.print(message.sensor);
+    Serial.print(", New status: ");
+    Serial.println(message.getBool());
+  }
+}
