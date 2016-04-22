@@ -1,0 +1,211 @@
+/*
+  Original code created by DFRobot for their probes, 
+  adapted by haze5@icloud.com Mysensors for the project.
+*/
+
+
+#include <SPI.h>
+#include <MySensor.h>
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include "Vcc.h"        // https://github.com/Yveaux/Arduino_Vcc
+
+static const float VccMin = 0.0;        // Minimum expected Vcc level, in Volts. (0.6V for 1 AA Alkaline)
+static const float VccMax = 3.3;        // Maximum expected Vcc level, in Volts. (1.5V for 1 AA Alkaline)
+static const float VccCorrection = 3.29 / 3.31;  // Measured Vcc by multimeter divided by reported Vcc
+Vcc vcc(VccCorrection);
+
+#define CHILD_ID_PH 0
+#define ArrayLenth 10               // times of collection
+#define PH_SENSOR_ANALOG_PIN A0         // pH meter Analog output to Arduino Analog Input 0
+#define LED_DIGITAL_PIN 13
+#define Offset 0.00           //deviation compensate
+
+#define CHILD_ID_TEMP 1
+#define COMPARE_TEMP 1 // Send temperature only if changed? 1 = Yes 0 = No
+#define ONE_WIRE_BUS 3 // Pin where dallase sensor is connected 
+#define MAX_ATTACHED_DS18B20 16
+
+unsigned long SLEEP_TIME = 30000; // Sleep time between reads (in milliseconds)
+OneWire oneWire(ONE_WIRE_BUS); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+DallasTemperature sensors(&oneWire); // Pass the oneWire reference to Dallas Temperature.
+
+unsigned long lastSend = 0;
+static const unsigned long SEND_FREQUENCY = 30000;  // Minimum time between send (in milliseconds)
+
+MySensor gw;
+
+float lastPhHValue;
+static const float deltaPhValue = 0.5;
+
+float lastTemperature[MAX_ATTACHED_DS18B20];
+int numSensors=1;
+boolean receivedConfig = false;
+boolean metric = true; 
+
+MyMessage msgPH(CHILD_ID_PH, V_VAR1);
+MyMessage msg(CHILD_ID_TEMP,V_TEMP);
+
+void setup()
+{   // Startup up the OneWire library
+    sensors.begin();
+    // requestTemperatures() will not block current thread
+    sensors.setWaitForConversion(false);
+    
+    //gw.begin(NULL, 100, false); //deze gebruiken, 100 is de node_id, die weer gebruiken in pimatic
+    gw.begin();
+    //Serial.print("0;0;3;0;2;");Serial.print(LIBRARY_VERSION);
+    
+    pinMode(LED_DIGITAL_PIN, OUTPUT);
+    numSensors = sensors.getDeviceCount();
+    
+    // Send the Sketch Version Information to the Gateway
+    gw.sendSketchInfo("pHmeter", "1.0");
+    
+    // Register all sensors to gw (they will be created as child devices)
+    gw.present(CHILD_ID_PH, S_WATER);
+
+    // Present all sensors to controller
+     for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {   
+    gw.present(i+CHILD_ID_TEMP, S_TEMP);
+    }
+}
+
+void loop()
+{
+    // By calling process() you route messages in the background
+    gw.process();
+    read_PH();
+    read_TEMP();
+
+    gw.sleep(SLEEP_TIME);
+}
+
+void read_PH(){
+   unsigned long now = millis();
+    bool sendTime = now - lastSend > SEND_FREQUENCY;
+    if (sendTime)
+    {
+        lastSend = now;
+        
+        //    float v = vcc.Read_Volts();
+        //    Serial.print("VCC = " );
+        //    Serial.print(v);
+        //    Serial.println(" Volts" );
+        
+        int batteryPcnt = (int)vcc.Read_Perc(VccMin, VccMax);
+        //    Serial.print("VCC = " );
+        //    Serial.print(batteryPcnt);
+        //    Serial.println(" %" );
+        
+        gw.sendBatteryLevel(batteryPcnt);
+    }
+    
+    // Read PH_SENSOR_ANALOG_PIN in phValue
+    float voltage = analogReadAverage(PH_SENSOR_ANALOG_PIN, 10) * 5.0 / 1024;
+    
+    // convert the millivolt into pH value
+    float PhValue = 3.5 * voltage+Offset;
+    
+    
+    
+    
+    if (sendTime || abs(PhValue - lastPhHValue) > deltaPhValue)
+    {
+        Serial.print("    pH:");
+        Serial.print(PhValue, 2);
+        Serial.println(" ");
+        
+        gw.send(msgPH.set(PhValue, 2)); // envoi au reseau avec deux decimales
+        
+        digitalWrite(LED_DIGITAL_PIN, digitalRead(LED_DIGITAL_PIN) ^ 1);
+        
+        lastPhHValue = PhValue;
+    }
+}
+
+
+void read_TEMP(){
+  sensors.requestTemperatures();
+
+  // query conversion time and sleep until conversion completed
+  int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
+  // sleep() call can be replaced by wait() call if node need to process incoming messages (or if node is repeater)
+  gw.sleep(conversionTime);
+
+  // Read temperatures and send them to controller 
+  for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {
+ 
+    // Fetch and round temperature to one decimal
+    float temperature = static_cast<float>(static_cast<int>((gw.getConfig().isMetric?sensors.getTempCByIndex(i):sensors.getTempFByIndex(i)) * 10.)) / 10.;
+ 
+    // Only send data if temperature has changed and no error
+    #if COMPARE_TEMP == 1
+    if (lastTemperature[i] != temperature && temperature != -127.00 && temperature != 85.00) {
+    #else
+    if (temperature != -127.00 && temperature != 85.00) {
+    #endif
+ 
+      // Send in the new temperature
+      gw.send(msg.setSensor(i).set(temperature,1));
+      // Save new temperatures for next compare
+      lastTemperature[i]=temperature;
+    }
+  }   
+}
+
+
+
+
+
+
+
+double analogReadAverage(uint8_t pin, unsigned long ms)
+{
+    double average = 0;
+    int buffer[ArrayLenth];
+    
+    for (int i = 0; i < ArrayLenth; i++)
+    {
+        buffer[i] = analogRead(PH_SENSOR_ANALOG_PIN);
+        delay(ms);
+    }
+    
+    if (ArrayLenth < 5)
+    {
+        // less than 5, calculated directly statistics
+        for (int i = 0; i < ArrayLenth; i++)
+        {
+            average += buffer[i];
+        }
+        average = average / ArrayLenth;
+    }
+    else
+    {
+        // Sort the values from small to large
+        for (int i = 0; i < ArrayLenth; i++)
+        {
+            for (int j = i + 1; j < 10; j++)
+            {
+                if (buffer[i] > buffer[j])
+                {
+                    int temp = buffer[i];
+                    buffer[i] = buffer[j];
+                    buffer[j] = temp;
+                }
+            }
+        }
+        
+        // take the average value of center sample
+        for (int i = 2; i < ArrayLenth - 2; i++)
+        {
+            average += buffer[i];
+        }
+        
+        average = average / (ArrayLenth - 4);
+    }
+    
+    return average;
+}
+
+
