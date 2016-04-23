@@ -20,14 +20,14 @@
 #define CHILD_BUT4 10
 
 //BUTTONS
-#define BUTTON_PIN1  A4
-#define BUTTON_PIN2  A5
-#define BUTTON_PIN3  A6
-#define BUTTON_PIN4  A7
+#define BUTTON_PIN1  A0
+#define BUTTON_PIN2  A1
+#define BUTTON_PIN3  A2
+#define BUTTON_PIN4  A3
 //MQ+DHT
 #define MY_LEDS_BLINKING_FEATURE
 #define HUMIDITY_SENSOR_DIGITAL_PIN 8
-const int MQ_Pin = A3;
+const int MQ_Pin = A4;
 //DIMMER
 #define LED_PIN_1 3
 #define LED_PIN_2 5
@@ -116,13 +116,13 @@ void setup()
   debouncer_3.interval(5);
   debouncer_4.attach(BUTTON_PIN4);
   debouncer_4.interval(5);
-  gw.present(CHILD_BUT1, S_LIGHT);
+  gw.present(CHILD_BUT1, S_DOOR);
   gw.wait( 50 );
-  gw.present(CHILD_BUT2, S_LIGHT);
+  gw.present(CHILD_BUT2, S_DOOR);
   gw.wait( 50 );
-  gw.present(CHILD_BUT3, S_LIGHT);
+  gw.present(CHILD_BUT3, S_DOOR);
   gw.wait( 50 );
-  gw.present(CHILD_BUT4, S_LIGHT);
+  gw.present(CHILD_BUT4, S_DOOR);
   gw.wait( 50 );
 }
 
@@ -141,7 +141,7 @@ int value_but_4 = debouncer_4.read();
   if ( value_but_1==0)
   {
      state1 = !state1;
-     gw.send(msgbut1.set(state1, true));
+     gw.send(msgbut1.set(state1));
   }
      oldValue_1 = value_but_1;
 }
@@ -152,7 +152,7 @@ int value_but_4 = debouncer_4.read();
   if ( value_but_2==0)
   {
      state2 = !state2;
-     gw.send(msgbut2.set(state2, true));
+     gw.send(msgbut2.set(state2));
   }
      oldValue_2 = value_but_2;
 }
@@ -163,7 +163,7 @@ int value_but_4 = debouncer_4.read();
   if ( value_but_3==0)
   {
      state3 = !state3;
-     gw.send(msgbut3.set(state3, true));
+     gw.send(msgbut3.set(state3));
   }
      oldValue_3 = value_but_3;
 }
@@ -174,7 +174,7 @@ int value_but_4 = debouncer_4.read();
   if ( value_but_4==0)
   {
      state4 = !state4;
-     gw.send(msgbut4.set(state4, true));
+     gw.send(msgbut4.set(state4));
   }
      oldValue_4 = value_but_4;
 }
