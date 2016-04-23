@@ -7,20 +7,25 @@
 #include <Wire.h>
 #include <Bounce2.h>
 
+//DEFINE CHILD_IDS
+#define DIMMER_NODE_1 0
+#define DIMMER_NODE_2 1
+#define DIMMER_NODE_3 2
+#define CHILD_ID_HUM 4
+#define CHILD_ID_TEMP 5
+#define CHILD_ID_MQ 6
+#define CHILD_BUT1 7
+#define CHILD_BUT2 8
+#define CHILD_BUT3 9
+#define CHILD_BUT4 10
+
 //BUTTONS
-#define CHILD_BUT1 13
-#define CHILD_BUT2 14
-#define CHILD_BUT3 15
-#define CHILD_BUT4 16
 #define BUTTON_PIN1  A4
 #define BUTTON_PIN2  A5
 #define BUTTON_PIN3  A6
 #define BUTTON_PIN4  A7
 //MQ+DHT
 #define MY_LEDS_BLINKING_FEATURE
-#define CHILD_ID_HUM 0
-#define CHILD_ID_TEMP 1
-#define CHILD_ID_MQ 3
 #define HUMIDITY_SENSOR_DIGITAL_PIN 8
 const int MQ_Pin = A3;
 //DIMMER
@@ -28,9 +33,6 @@ const int MQ_Pin = A3;
 #define LED_PIN_2 5
 #define LED_PIN_3 6
 #define FADE_DELAY 10
-#define DIMMER_NODE_1 0
-#define DIMMER_NODE_2 1
-#define DIMMER_NODE_3 2
 
 MySensor gw;
 DHT dht;
@@ -40,18 +42,18 @@ Bounce debouncer_1 = Bounce();
 Bounce debouncer_2 = Bounce();
 Bounce debouncer_3 = Bounce();
 Bounce debouncer_4 = Bounce();
-int oldValue1=-1;
-int oldValue2=-1;
-int oldValue3=-1;
-int oldValue4=-1;
-//int button_1 = A4;
-//int button_2 = A5;
-//int button_3 = A6;
-//int button_4 = A7; 
-MyMessage msgLight1(CHILD_BUT1,V_TRIPPED);
-MyMessage msgLight2(CHILD_BUT2,V_TRIPPED);
-MyMessage msgLight3(CHILD_BUT3,V_TRIPPED);
-MyMessage msgLight4(CHILD_BUT4,V_TRIPPED);
+int oldValue_1=-1;
+int oldValue_2=-1;
+int oldValue_3=-1;
+int oldValue_4=-1;
+bool state1;
+bool state2;
+bool state3;
+bool state4;
+MyMessage msgbut1(CHILD_BUT1,V_TRIPPED);
+MyMessage msgbut2(CHILD_BUT2,V_TRIPPED);
+MyMessage msgbut3(CHILD_BUT3,V_TRIPPED);
+MyMessage msgbut4(CHILD_BUT4,V_TRIPPED);
 //MQ+DHT
 float lastTemp;
 float lastHum;
@@ -69,18 +71,22 @@ MyMessage lightMsg1(1, V_LIGHT);
 MyMessage dimmerMsg2(2, V_DIMMER);
 MyMessage lightMsg2(2, V_LIGHT);
 
+unsigned long SLEEP_TIME = 30000; // Sleep time between reads (in milliseconds)
+
+
 void setup()  
 { 
   Serial.begin(9600);
   Serial.println( SN ); 
-  gw.begin( incomingMessage, 89 );
+  gw.begin( incomingMessage, 71, true );
   gw.sendSketchInfo(SN, SV);
   //MQ+DHT
-  dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
+ /* dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_MQ, S_AIR_QUALITY);
   gw.wait( 50 );
+  */
   //DIMMER
   gw.present( DIMMER_NODE_1, S_DIMMER );
   gw.wait( 50 );
@@ -110,17 +116,56 @@ void setup()
   debouncer_3.interval(5);
   debouncer_4.attach(BUTTON_PIN4);
   debouncer_4.interval(5);
-  gw.present(CHILD_BUT1, S_DOOR);
-  gw.present(CHILD_BUT2, S_DOOR);  
-  gw.present(CHILD_BUT3, S_DOOR);  
-  gw.present(CHILD_BUT4, S_DOOR);  
+  gw.present(CHILD_BUT1, S_LIGHT);
+  gw.wait( 50 );
+  gw.present(CHILD_BUT2, S_LIGHT);
+  gw.wait( 50 );
+  gw.present(CHILD_BUT3, S_LIGHT);
+  gw.wait( 50 );
+  gw.present(CHILD_BUT4, S_LIGHT);
+  gw.wait( 50 );
 }
 
 void loop() 
 {
   gw.process();
- //DHT+MQ
-  delay(dht.getMinimumSamplingPeriod());
+int value_but_1 = debouncer_1.read();
+int value_but_2 = debouncer_2.read();
+int value_but_3 = debouncer_3.read();
+int value_but_4 = debouncer_3.read(); 
+
+//BUTTONS
+  debouncer_1.update();
+  if (value_but_1 != oldValue_1 && value_but_1==0) 
+  {
+     gw.send(msgbut1.set(state1?false:true), true);
+     oldValue_1 = value_but_1;
+  }
+     
+  debouncer_2.update();
+    if (value_but_2 != oldValue_2 && value_but_2==0) 
+  {
+     gw.send(msgbut2.set(state2?false:true), true);
+     oldValue_2 = value_but_2;
+  }
+
+  debouncer_3.update();
+     if (value_but_3 != oldValue_3 && value_but_3==0)
+  {
+     gw.send(msgbut3.set(state3?false:true), true);
+     oldValue_3 = value_but_3;
+  }
+
+  debouncer_4.update();
+     if (value_but_4 != oldValue_4 && value_but_4==0)
+   {
+     gw.send(msgbut4.set(state4?false:true), true);
+     oldValue_4 = value_but_4;
+  }
+//gw.sleep(INTERRUPT,CHANGE, SLEEP_TIME);
+}
+//DHT+MQ
+/*  delay(dht.getMinimumSamplingPeriod());
   float temperature = dht.getTemperature();
   if (isnan(temperature)) 
   { Serial.println("Failed reading temperature from DHT"); } 
@@ -142,42 +187,7 @@ void loop()
   { last_mq_reading = mq_reading;
     gw.send(msgMQ.set(mq_reading, 1));
   }
-
-//BUTTONS
-  
-  debouncer1.update();
-  int value_but_1 = debouncer_1.read();
-  if (value_but_1 != oldValue_1) 
-  {
-     gw.send(msgLight1.set(value_but1==HIGH ? 1 : 0));
-     oldValue_1 = value_but1;
-  }
-
-  debouncer_2.update();
-  int value_but_2 = debouncer_2.read();
-    if (value_but_2 != oldValue_2) 
-  {
-     gw.send(msgLight2.set(value_but2==HIGH ? 1 : 0));
-     oldValue_2 = value_but2;
-  }
-
-  debouncer_3.update();
-  int value_but_3 = debouncer_3.read();
-     if (value_but_3 != oldValue_3) 
-  {
-     gw.send(msgLight3.set(value_but3==HIGH ? 1 : 0));
-     oldValue_3 = value_but3;
-  }
-
-  debouncer_4.update();
-  int value_but_4 = debouncer_3.read(); 
-     if (value_but_4 != oldValue_4) 
-   {
-     gw.send(msgLight4.set(value_but4==HIGH ? 1 : 0));
-     oldValue_4 = value_but4;
-  }
-}
-
+*/
 //DIMMER
 void incomingMessage(const MyMessage &message) {
   if (message.type == V_LIGHT || message.type == V_DIMMER) {
