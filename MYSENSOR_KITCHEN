@@ -132,7 +132,7 @@ void loop()
 int value_but_1 = debouncer_1.read();
 int value_but_2 = debouncer_2.read();
 int value_but_3 = debouncer_3.read();
-int value_but_4 = debouncer_3.read(); 
+int value_but_4 = debouncer_4.read(); 
 
 //BUTTONS
   debouncer_1.update();
@@ -145,28 +145,39 @@ int value_but_4 = debouncer_3.read();
   }
      oldValue_1 = value_but_1;
 }
-/*     
+
   debouncer_2.update();
-    if (value_but_2 != oldValue_2 && value_but_2==0) 
+  if (value_but_2 != oldValue_2) 
+{ 
+  if ( value_but_2==0)
   {
-     gw.send(msgbut2.set(state2?false:true), true);
-     oldValue_2 = value_but_2;
+     state2 = !state2;
+     gw.send(msgbut2.set(state2, true));
   }
+     oldValue_2 = value_but_2;
+}
 
   debouncer_3.update();
-     if (value_but_3 != oldValue_3 && value_but_3==0)
+  if (value_but_3 != oldValue_3) 
+{ 
+  if ( value_but_3==0)
   {
-     gw.send(msgbut3.set(state3?false:true), true);
-     oldValue_3 = value_but_3;
+     state3 = !state3;
+     gw.send(msgbut3.set(state3, true));
   }
+     oldValue_3 = value_but_3;
+}
 
   debouncer_4.update();
-     if (value_but_4 != oldValue_4 && value_but_4==0)
-   {
-     gw.send(msgbut4.set(state4?false:true), true);
-     oldValue_4 = value_but_4;
+  if (value_but_4 != oldValue_4) 
+{ 
+  if ( value_but_4==0)
+  {
+     state4 = !state4;
+     gw.send(msgbut4.set(state4, true));
   }
-*/
+     oldValue_4 = value_but_4;
+}
 //gw.sleep(INTERRUPT,CHANGE, SLEEP_TIME);
 }
 //DHT+MQ
