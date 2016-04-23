@@ -136,12 +136,15 @@ int value_but_4 = debouncer_3.read();
 
 //BUTTONS
   debouncer_1.update();
-  if (value_but_1 != oldValue_1 && value_but_1==0) 
+  if (value_but_1 != oldValue_1) 
+{ 
+  if ( value_but_1==0)
   {
-     state1 = !state1
-     gw.send(msgbut1.set(state, true));
-     oldValue_1 = value_but_1;
+     state1 = !state1;
+     gw.send(msgbut1.set(state1, true));
   }
+     oldValue_1 = value_but_1;
+}
 /*     
   debouncer_2.update();
     if (value_but_2 != oldValue_2 && value_but_2==0) 
