@@ -101,12 +101,12 @@ void setup()
   gw.request( DIMMER_NODE_3, V_DIMMER );
   //BUTTONS
   pinMode(BUTTON_PIN1,INPUT);
-  pinMode(BUTTON_PIN2,INPUT);
-  pinMode(BUTTON_PIN3,INPUT);
-  pinMode(BUTTON_PIN4,INPUT);
   digitalWrite(BUTTON_PIN1, HIGH);
+  pinMode(BUTTON_PIN2,INPUT);
   digitalWrite(BUTTON_PIN2, HIGH);
+  pinMode(BUTTON_PIN3,INPUT);
   digitalWrite(BUTTON_PIN3, HIGH);
+  pinMode(BUTTON_PIN4,INPUT);
   digitalWrite(BUTTON_PIN4, HIGH);
   debouncer_1.attach(BUTTON_PIN1);
   debouncer_1.interval(5);
@@ -138,10 +138,11 @@ int value_but_4 = debouncer_3.read();
   debouncer_1.update();
   if (value_but_1 != oldValue_1 && value_but_1==0) 
   {
-     gw.send(msgbut1.set(state1?false:true), true);
+     state1 = !state1
+     gw.send(msgbut1.set(state, true));
      oldValue_1 = value_but_1;
   }
-     
+/*     
   debouncer_2.update();
     if (value_but_2 != oldValue_2 && value_but_2==0) 
   {
@@ -162,6 +163,7 @@ int value_but_4 = debouncer_3.read();
      gw.send(msgbut4.set(state4?false:true), true);
      oldValue_4 = value_but_4;
   }
+*/
 //gw.sleep(INTERRUPT,CHANGE, SLEEP_TIME);
 }
 //DHT+MQ
