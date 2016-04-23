@@ -78,7 +78,7 @@ void setup()
 { 
   Serial.begin(9600);
   Serial.println( SN ); 
-  gw.begin( incomingMessage, 71, true );
+  gw.begin( incomingMessage, 71 );
   gw.sendSketchInfo(SN, SV);
   //MQ+DHT
  /* dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
