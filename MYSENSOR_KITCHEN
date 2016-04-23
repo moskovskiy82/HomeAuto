@@ -1,3 +1,4 @@
+```c++
 #define SN "Kitchen Hood"
 #define SV "1.0"
 #include <MySensor.h> 
