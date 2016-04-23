@@ -1,5 +1,3 @@
-```C++
-
 /* http://forum.mysensors.org/topic/994/multi-button-relay-switch/43
 
 
@@ -87,4 +85,4 @@ void incomingMessage(const MyMessage &message)
 		}
 	}
 }
-```
+
