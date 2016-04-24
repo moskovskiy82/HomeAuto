@@ -70,7 +70,6 @@ MyMessage dimmerMsg1(1, V_DIMMER);
 MyMessage lightMsg1(1, V_LIGHT);
 MyMessage dimmerMsg2(2, V_DIMMER);
 MyMessage lightMsg2(2, V_LIGHT);
-
 unsigned long SLEEP_TIME = 30000; // Sleep time between reads (in milliseconds)
 
 
@@ -181,7 +180,7 @@ int value_but_4 = debouncer_4.read();
 //gw.sleep(INTERRUPT,CHANGE, SLEEP_TIME);
 }
 //DHT+MQ
-  delay(dht.getMinimumSamplingPeriod());
+/*  delay(dht.getMinimumSamplingPeriod());
   float temperature = dht.getTemperature();
   if (isnan(temperature)) 
   { Serial.println("Failed reading temperature from DHT"); } 
@@ -203,7 +202,7 @@ int value_but_4 = debouncer_4.read();
   { last_mq_reading = mq_reading;
     gw.send(msgMQ.set(mq_reading, 1));
   }
-
+*/
 //DIMMER
 void incomingMessage(const MyMessage &message) {
   if (message.type == V_LIGHT || message.type == V_DIMMER) {
