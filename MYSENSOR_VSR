@@ -8,8 +8,6 @@
 #include <math.h>
 #include <Wire.h>
 
-
-
 #define RELAY_1  4  // Arduino Digital I/O pin number for first relay (second on pin+1 etc)
 #define NUMBER_OF_RELAYS 4 // Total number of attached relays
 #define RELAY_ON 1  // GPIO value to write to turn on attached relay
@@ -62,72 +60,56 @@ void setup()
   }
 }
 
-
 void loop() 
-{
-  // Alway process incoming messages whenever possible
+{ 
   gw.process();
- unsigned long DHT_Current_Millis = millis();
-if(DHT_Current_Millis - DHT_Millis > DHT_interval)
-{
-DHT_Millis = DHT_Current_Millis; 
- 
-  delay(dht.getMinimumSamplingPeriod());
-  float temperature = dht.getTemperature();
-  if (isnan(temperature)) 
-  {
-      Serial.println("Failed reading temperature from DHT");
+  unsigned long DHT_Current_Millis = millis();
+  if(DHT_Current_Millis - DHT_Millis > DHT_interval)
+ { DHT_Millis = DHT_Current_Millis;
+   delay(dht.getMinimumSamplingPeriod());
+   float temperature = dht.getTemperature();
+   if (isnan(temperature)) 
+  { Serial.println("Failed reading temperature from DHT");
   } 
   else if (temperature != lastTemp) 
-  {
-    lastTemp = temperature;
+  { lastTemp = temperature;
     gw.send(msgTemp.set(temperature, 1));
     Serial.print("T: ");
     Serial.println(temperature);
   }
   float humidity = dht.getHumidity();
   if (isnan(humidity)) 
-  {
-      Serial.println("Failed reading humidity from DHT");
+  { Serial.println("Failed reading humidity from DHT");
   } 
   else if (humidity != lastHum) 
-  {
-      lastHum = humidity;
-      gw.send(msgHum.set(humidity, 1));
-      Serial.print("H: ");
-      Serial.println(humidity);
+  { lastHum = humidity;
+    gw.send(msgHum.set(humidity, 1));
+    Serial.print("H: ");
+    Serial.println(humidity);
   }
 }
 unsigned long MQ5_Current_Millis = millis();
 if(MQ5_Current_Millis - MQ2_Millis > MQ2_interval)
-{
-MQ2_Millis = MQ5_Current_Millis; 
-float mq_reading = analogRead(MQ_Pin);
+{ 
+  MQ2_Millis = MQ5_Current_Millis; 
+  float mq_reading = analogRead(MQ_Pin);
   if (isnan(mq_reading)) 
-  {
-      Serial.println("Failed mq_reading");
+  { Serial.println("Failed mq_reading");
   } 
   else if (mq_reading != last_mq_reading) 
-  {
-    last_mq_reading = mq_reading;
+  { last_mq_reading = mq_reading;
     gw.send(msgMQ.set(mq_reading, 1));
     Serial.print("MQ: ");
     Serial.println(mq_reading);  
   }
-
-  }
-
+ }
 }
 
-
-
-void incomingMessage(const MyMessage &message) {
-  // We only expect one type of message from controller. But we better check anyway.
-  if (message.type==V_LIGHT) {
-     // Change relay state
-     digitalWrite(message.sensor-1+RELAY_1, message.getBool()?RELAY_ON:RELAY_OFF);
-     // Store state in eeprom
-     gw.saveState(message.sensor, message.getBool());
+void incomingMessage(const MyMessage &message) 
+{
+  if (message.type==V_LIGHT) 
+  {  digitalWrite(message.sensor-1+RELAY_1, message.getBool()?RELAY_ON:RELAY_OFF); // Change relay state
+     gw.saveState(message.sensor, message.getBool()); // Store state in eeprom
      // Write some debug info
      Serial.print("Incoming change for sensor:");
      Serial.print(message.sensor);
