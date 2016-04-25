@@ -77,27 +77,30 @@ void setup()
 { 
   Serial.begin(9600);
   Serial.println( SN ); 
-  gw.begin( incomingMessage, 71 );
+  gw.begin( incomingMessage );
   gw.sendSketchInfo(SN, SV);
   //MQ+DHT
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_MQ, S_AIR_QUALITY);
-  gw.wait( 50 );
+  //gw.wait( 50 );
   
   //DIMMER
   gw.present( DIMMER_NODE_1, S_DIMMER );
-  gw.wait( 50 );
+  gw.send(dimmerMsg0.set(0));
+  digitalWrite( LED_PIN_1, 0);
+  //gw.wait( 50 );
   gw.present( DIMMER_NODE_2, S_DIMMER );
-  gw.wait( 50 );
+  //gw.wait( 50 );
   gw.present( DIMMER_NODE_3, S_DIMMER );
-  gw.wait( 50 );
-  gw.request( DIMMER_NODE_1, V_DIMMER );
-  gw.wait( 50 );
-  gw.request( DIMMER_NODE_2, V_DIMMER );
-  gw.wait( 50 );
+//gw.wait( 50 );
+// gw.request( DIMMER_NODE_1, V_DIMMER );
+// gw.wait( 50 );
+// gw.request( DIMMER_NODE_2, V_DIMMER );
+ // gw.wait( 50 );
   gw.request( DIMMER_NODE_3, V_DIMMER );
+  
   //BUTTONS
   pinMode(BUTTON_PIN1,INPUT);
   digitalWrite(BUTTON_PIN1, HIGH);
@@ -177,10 +180,10 @@ int value_but_4 = debouncer_4.read();
   }
      oldValue_4 = value_but_4;
 }
-//gw.sleep(INTERRUPT,CHANGE, SLEEP_TIME);
+
 }
 //DHT+MQ
-/*  delay(dht.getMinimumSamplingPeriod());
+delay(dht.getMinimumSamplingPeriod());
   float temperature = dht.getTemperature();
   if (isnan(temperature)) 
   { Serial.println("Failed reading temperature from DHT"); } 
@@ -202,7 +205,7 @@ int value_but_4 = debouncer_4.read();
   { last_mq_reading = mq_reading;
     gw.send(msgMQ.set(mq_reading, 1));
   }
-*/
+
 //DIMMER
 void incomingMessage(const MyMessage &message) {
   if (message.type == V_LIGHT || message.type == V_DIMMER) {
