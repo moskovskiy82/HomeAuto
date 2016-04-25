@@ -89,15 +89,15 @@ void setup()
   //DIMMER
   gw.present( DIMMER_NODE_1, S_DIMMER );
   gw.send(dimmerMsg0.set(0));
-  digitalWrite( LED_PIN_1, LOW);
+  analogWrite( LED_PIN_1, 0);
   gw.wait( 50 );
   gw.present( DIMMER_NODE_2, S_DIMMER );
   gw.send(dimmerMsg1.set(0));
-  digitalWrite( LED_PIN_2, LOW);
+  analogWrite( LED_PIN_2, 0);
   gw.wait( 50 );
   gw.present( DIMMER_NODE_3, S_DIMMER );
   gw.send(dimmerMsg2.set(0));
-  digitalWrite( LED_PIN_3, LOW);
+  analogWrite( LED_PIN_3, 0);
   gw.wait( 50 );
 // gw.request( DIMMER_NODE_1, V_DIMMER );
 // gw.wait( 50 );
