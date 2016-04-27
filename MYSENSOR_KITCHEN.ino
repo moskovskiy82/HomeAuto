@@ -140,6 +140,30 @@ int value_but_2 = debouncer_2.read();
 int value_but_3 = debouncer_3.read();
 int value_but_4 = debouncer_4.read(); 
 
+//DHT+MQ
+ delay (dht.getMinimumSamplingPeriod());
+  float temperature = dht.getTemperature();
+  if (isnan(temperature)) 
+  { Serial.println("Failed reading temperature from DHT"); } 
+  else if (temperature != lastTemp) 
+  { lastTemp = temperature;
+    gw.send(msgTemp.set(temperature, 1));
+  }
+  float humidity = dht.getHumidity();
+  if (isnan(humidity)) 
+  { Serial.println("Failed reading humidity from DHT"); } 
+  else if (humidity != lastHum) 
+  {  lastHum = humidity;
+      gw.send(msgHum.set(humidity, 1));
+  }
+  float mq_reading = analogRead(MQ_Pin);
+  if (isnan(mq_reading)) 
+  { Serial.println("Failed mq_reading"); }
+  else if (mq_reading != last_mq_reading) 
+  { last_mq_reading = mq_reading;
+    gw.send(msgMQ.set(mq_reading, 1));
+  }
+
 //BUTTONS
   debouncer_1.update();
   if (value_but_1 != oldValue_1) 
@@ -186,29 +210,7 @@ int value_but_4 = debouncer_4.read();
 }
 
 }
-//DHT+MQ
- delay(dht.getMinimumSamplingPeriod());
-  float temperature = dht.getTemperature();
-  if (isnan(temperature)) 
-  { Serial.println("Failed reading temperature from DHT"); } 
-  else if (temperature != lastTemp) 
-  { lastTemp = temperature;
-    gw.send(msgTemp.set(temperature, 1));
-  }
-  float humidity = dht.getHumidity();
-  if (isnan(humidity)) 
-  { Serial.println("Failed reading humidity from DHT"); } 
-  else if (humidity != lastHum) 
-  {  lastHum = humidity;
-      gw.send(msgHum.set(humidity, 1));
-  }
-  float mq_reading = analogRead(MQ_Pin);
-  if (isnan(mq_reading)) 
-  { Serial.println("Failed mq_reading"); }
-  else if (mq_reading != last_mq_reading) 
-  { last_mq_reading = mq_reading;
-    gw.send(msgMQ.set(mq_reading, 1));
-  }
+
 
 //DIMMER
 void incomingMessage(const MyMessage &message) {
