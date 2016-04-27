@@ -59,6 +59,10 @@ float lastTemp;
 float lastHum;
 float hum_floa;
 float last_mq_reading;
+long MQ2_Millis = 0;
+long MQ2_interval = 30000;
+long DHT_Millis = 0;
+long DHT_interval = 30000;
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 MyMessage msgMQ(CHILD_ID_MQ, V_LEVEL);
@@ -141,29 +145,51 @@ int value_but_3 = debouncer_3.read();
 int value_but_4 = debouncer_4.read(); 
 
 //DHT+MQ
- delay (dht.getMinimumSamplingPeriod());
-  float temperature = dht.getTemperature();
-  if (isnan(temperature)) 
-  { Serial.println("Failed reading temperature from DHT"); } 
+unsigned long DHT_Current_Millis = millis();
+if(DHT_Current_Millis - DHT_Millis > DHT_interval)
+{
+DHT_Millis = DHT_Current_Millis; 
+delay(dht.getMinimumSamplingPeriod());
+float temperature = dht.getTemperature();
+if (isnan(temperature)) 
+  {
+      Serial.println("Failed reading temperature from DHT");
+  } 
   else if (temperature != lastTemp) 
-  { lastTemp = temperature;
-    gw.send(msgTemp.set(temperature, 1));
+  {
+    lastTemp = temperature;
+    gw.send(msgTemp.set(temperature, 2));
+    Serial.print("T: ");
+    Serial.println(temperature);
   }
-  float humidity = dht.getHumidity();
-  if (isnan(humidity)) 
+float humidity = dht.getHumidity();
+if (isnan(humidity)) 
   { Serial.println("Failed reading humidity from DHT"); } 
-  else if (humidity != lastHum) 
-  {  lastHum = humidity;
-      gw.send(msgHum.set(humidity, 1));
+else if (humidity != lastHum) 
+  {   lastHum = humidity;
+      gw.send(msgHum.set(humidity, 2));
+      Serial.print("H: ");
+      Serial.println(humidity);
   }
-  float mq_reading = analogRead(MQ_Pin);
+}
+unsigned long MQ5_Current_Millis = millis();
+if(MQ5_Current_Millis - MQ2_Millis > MQ2_interval)
+{
+MQ2_Millis = MQ5_Current_Millis; 
+float mq_reading = analogRead(MQ_Pin);
   if (isnan(mq_reading)) 
-  { Serial.println("Failed mq_reading"); }
+  {
+      Serial.println("Failed mq_reading");
+  } 
   else if (mq_reading != last_mq_reading) 
-  { last_mq_reading = mq_reading;
+  {
+    last_mq_reading = mq_reading;
     gw.send(msgMQ.set(mq_reading, 1));
+    Serial.print("MQ: ");
+    Serial.println(mq_reading);  
   }
 
+  }
 //BUTTONS
   debouncer_1.update();
   if (value_but_1 != oldValue_1) 
