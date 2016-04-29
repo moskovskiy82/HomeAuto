@@ -6,6 +6,12 @@
 #include <math.h>
 #include <Wire.h>
 #include <Bounce2.h>
+//GENERAL
+//#define MY_LEDS_BLINKING_FEATURE
+#define MY_DEFAULT_ERR_LED A10
+#define MY_DEFAULT_TX_LED A10
+#define MY_DEFAULT_RX_LED A10
+
 
 //DEFINE CHILD_IDS
 #define DIMMER_NODE_1 0
@@ -25,7 +31,6 @@
 #define BUTTON_PIN3  A2
 #define BUTTON_PIN4  A3
 //MQ+DHT
-#define MY_LEDS_BLINKING_FEATURE
 #define HUMIDITY_SENSOR_DIGITAL_PIN 8
 const int MQ_Pin = A4;
 //DIMMER
