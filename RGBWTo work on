@@ -1,15 +1,11 @@
 // MySensors
 #include <MySigningNone.h>
 #include <MyTransportNRF24.h>
-#include <MyHwATMega328.h>
 #include <MySensor.h>
 #include <SPI.h>
-#include <DHT.h>
-#include <Button.h>
+#include <Wire.h>
 
-MyTransportNRF24 radio(RF24_CE_PIN, RF24_CS_PIN, RF24_PA_LEVEL_GW);
-MyHwATMega328 hw;
-MySensor gw(radio, hw);
+MySensor gw;
 DHT dht;
 
 #define RED_PIN 3
