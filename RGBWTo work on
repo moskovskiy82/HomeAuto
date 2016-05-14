@@ -31,7 +31,7 @@ void setup()
   gw.begin(incomingMessage, 99, true);
   gw.sendSketchInfo("RGB LED Dimmer", "1.0");
   gw.present(0, S_RGB_LIGHT);
-
+  Serial.print("SYSTEM STARTED");
   // Set pin output mode
   pinMode(RED_PIN, OUTPUT);
   pinMode(GREEN_PIN, OUTPUT);
@@ -42,6 +42,7 @@ void setup()
 void loop() 
 {
 gw.process();
+}
 void incomingMessage(const MyMessage &message) {
   if (message.type==V_RGB) {
     hexstring = message.getString();
