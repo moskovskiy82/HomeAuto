@@ -28,7 +28,7 @@ int CurrentLevel;
 
 void setup() 
 {
-  gw.begin(incomingMessage, 99, true);
+  gw.begin(incomingMessage, 36);
   gw.sendSketchInfo("RGB LED Dimmer", "1.0");
   gw.present(0, S_RGB_LIGHT);
   Serial.print("SYSTEM STARTED");
